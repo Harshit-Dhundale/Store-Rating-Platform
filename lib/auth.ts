@@ -1,3 +1,4 @@
+
 'use client'
 import { supabaseBrowser } from './supabase-browser'
 import type { UserRole } from './types'
@@ -13,6 +14,7 @@ export async function clientSignUp(
   password: string,
   userData: { name: string; address: string; role?: UserRole }
 ) {
+
   const res = await fetch('/api/auth/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -28,12 +30,15 @@ export async function getCurrentUserProfile() {
   } = await supabaseBrowser.auth.getSession()
   if (!session?.user) return null
   const { data, error } = await supabaseBrowser
+
     .from('users')
     .select('*')
     .eq('id', session.user.id)
     .single()
   if (error) return null
+
   return data
+
 }
 
 export async function signOut() {
