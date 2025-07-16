@@ -44,10 +44,9 @@ export async function signIn(email: string, password: string) {
   // Sign in with Supabase Auth using the user's credentials
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
     email,
-    password: "dummy_password", // We'll handle this differently
+    password,
   })
 
-  // If Supabase auth fails, create a manual session
   if (authError) {
     // Store user info in localStorage as a fallback
     if (typeof window !== "undefined") {
@@ -60,6 +59,9 @@ export async function signIn(email: string, password: string) {
         }),
       )
     }
+  } else if (typeof window !== "undefined") {
+    // Clean up any stale fallback session on successful Supabase sign in
+    localStorage.removeItem("user_session")
   }
 
   return result.user

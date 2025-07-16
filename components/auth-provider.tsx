@@ -27,8 +27,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } = await supabase.auth.getSession()
 
       if (session?.user?.id) {
-        const { data: userData } = await supabase.from("users").select("*").eq("id", session.user.id).single()
+        const { data: userData } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", session.user.id)
+          .single()
         if (userData) {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("user_session")
+          }
           setUser(userData as unknown as User)
           return
         }
