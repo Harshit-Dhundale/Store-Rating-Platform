@@ -1,106 +1,85 @@
-import { supabase } from "./supabase"
-import type { User } from "./types"
+import { supabaseBrowser } from './supabase-browser'
+import { supabaseAdmin } from './supabase-admin'
+import type { User, UserRole } from './types'
+import bcrypt from 'bcryptjs'
 
 export async function signUp(
   email: string,
   password: string,
-  userData: {
-    name: string
-    address: string
-  },
+  userData: { name: string; address: string; role?: UserRole }
 ) {
-  // First create the auth user with Supabase Auth
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
+    email_confirm: true,
+    user_metadata: { name: userData.name, role: userData.role ?? 'USER' },
   })
+  if (createErr || !created?.user) throw createErr ?? new Error('createUser failed')
+  const authUser = created.user
 
-  if (authError) throw authError
+  const passwordHash = await bcrypt.hash(password, 12)
 
-  if (!authData.user) {
-    throw new Error("Failed to create user")
-  }
+  const { data: profile, error: profErr } = await supabaseAdmin
+    .from('users')
+    .upsert({
+      id: authUser.id,
+      email,
+      name: userData.name,
+      address: userData.address,
+      password_hash: passwordHash,
+      role: userData.role ?? 'USER',
+    })
+    .select()
+    .single()
+  if (profErr) throw profErr
 
-  // Use server action to create user profile
-  const { createUserProfile } = await import("@/app/actions/auth")
-  const result = await createUserProfile(authData.user.id, email, password, userData)
-
-  if (!result.success) {
-    throw new Error(result.error)
-  }
-
-  return result.data
+  return { authUser, profile }
 }
 
 export async function signIn(email: string, password: string) {
-  // Use server action for authentication
-  const { signInUser } = await import("@/app/actions/auth")
-  const result = await signInUser(email, password)
+  const { data, error } = await supabaseBrowser.auth.signInWithPassword({ email, password })
+  if (error || !data.session) throw error ?? new Error('Invalid credentials')
 
-  if (!result.success) {
-    throw new Error(result.error || "Invalid credentials")
+  const userId = data.session.user.id
+  let { data: profile, error: profErr } = await supabaseBrowser
+    .from('users')
+    .select('*')
+    .eq('id', userId)
+    .single()
+
+  if (profErr && profErr.code === 'PGRST116') {
+    const { data: newProf, error: newProfErr } = await supabaseAdmin
+      .from('users')
+      .insert({
+        id: userId,
+        email,
+        name: email,
+        address: '',
+        password_hash: '',
+        role: 'USER',
+      })
+      .select()
+      .single()
+    if (newProfErr) throw newProfErr
+    profile = newProf
+  } else if (profErr) {
+    throw profErr
   }
-
-  // Sign in with Supabase Auth using the user's credentials
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
-
-  if (authError) {
-    // Store user info in localStorage as a fallback
-    if (typeof window !== "undefined") {
-      localStorage.setItem("user_session", JSON.stringify(result.user))
-
-      // Trigger a custom auth state change
-      window.dispatchEvent(
-        new CustomEvent("auth_change", {
-          detail: { user: result.user, event: "SIGNED_IN" },
-        }),
-      )
-    }
-  } else if (typeof window !== "undefined") {
-    // Clean up any stale fallback session on successful Supabase sign in
-    localStorage.removeItem("user_session")
-  }
-
-  return result.user
+  return { session: data.session, profile }
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  // First try to get from Supabase session
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (session?.user?.id) {
-    const { data: user } = await supabase.from("users").select("*").eq("id", session.user.id).single()
-    if (user) return user as unknown as User
-  }
-
-  // Fallback to localStorage
-  if (typeof window !== "undefined") {
-    const storedSession = localStorage.getItem("user_session")
-    if (storedSession) {
-      try {
-        return JSON.parse(storedSession) as User
-      } catch {
-        localStorage.removeItem("user_session")
-      }
-    }
-  }
-
-  return null
+  const { data: { session } } = await supabaseBrowser.auth.getSession()
+  if (!session?.user) return null
+  const { data: profile, error } = await supabaseBrowser
+    .from('users')
+    .select('*')
+    .eq('id', session.user.id)
+    .single()
+  if (error) return null
+  return profile as User
 }
 
 export async function signOut() {
-  await supabase.auth.signOut()
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("user_session")
-    window.dispatchEvent(
-      new CustomEvent("auth_change", {
-        detail: { user: null, event: "SIGNED_OUT" },
-      }),
-    )
-  }
+  await supabaseBrowser.auth.signOut()
 }
