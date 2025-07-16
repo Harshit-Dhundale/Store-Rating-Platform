@@ -4,7 +4,13 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Star, TrendingUp, Users, Calendar } from "lucide-react"
+import {
+  Star,
+  TrendingUp,
+  Users,
+  Calendar,
+  Store as StoreIcon,
+} from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { type Rating, Store } from "@/lib/types"
 import { useAuth } from "@/components/auth-provider"
@@ -18,12 +24,13 @@ export default function OwnerRatingsPage() {
   const { toast } = useToast()
 
   const fetchData = async () => {
+    if (!user) return
     try {
       // Get stores owned by this user
       const { data: ownedStores, error: storesError } = await supabase
         .from("stores")
         .select("*")
-        .eq("owner_id", user?.id)
+        .eq("owner_id", user.id)
 
       if (storesError) throw storesError
 
@@ -66,8 +73,8 @@ export default function OwnerRatingsPage() {
         }
       })
 
-      setStores(storesWithAverages)
-      setRatings(storeRatings || [])
+      setStores(storesWithAverages as Store[])
+      setRatings((storeRatings as unknown as Rating[]) || [])
     } catch (error) {
       console.error("Error fetching data:", error)
       toast({
@@ -119,7 +126,7 @@ export default function OwnerRatingsPage() {
         <h1 className="text-3xl font-bold">My Store Ratings</h1>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Store className="h-12 w-12 text-gray-400 mb-4" />
+            <StoreIcon className="h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No stores found</h3>
             <p className="text-gray-500 text-center">
               You don't have any stores assigned to you yet. Contact an administrator to get stores assigned to your
@@ -140,7 +147,7 @@ export default function OwnerRatingsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Stores</CardTitle>
-            <Store className="h-4 w-4 text-blue-600" />
+            <StoreIcon className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stores.length}</div>
@@ -198,9 +205,13 @@ export default function OwnerRatingsPage() {
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={store.avg_rating >= 4 ? "default" : store.avg_rating >= 3 ? "secondary" : "destructive"}
+                      variant={(store.avg_rating ?? 0) >= 4 ? "default" : (store.avg_rating ?? 0) >= 3 ? "secondary" : "destructive"}
                     >
-                      {store.avg_rating >= 4 ? "Excellent" : store.avg_rating >= 3 ? "Good" : "Needs Improvement"}
+                      {(store.avg_rating ?? 0) >= 4
+                        ? "Excellent"
+                        : (store.avg_rating ?? 0) >= 3
+                        ? "Good"
+                        : "Needs Improvement"}
                     </Badge>
                   </TableCell>
                 </TableRow>
