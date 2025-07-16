@@ -30,10 +30,12 @@ export default function UserStoresPage() {
 
       if (ratingsError) throw ratingsError
 
-      // Get full store details
-      const { data: storeDetails, error: storesError } = await supabase.from("stores").select("*")
-
-      if (storesError) throw storesError
+      // Get full store details via server route to bypass RLS
+      const storeRes = await fetch("/api/stores")
+      if (!storeRes.ok) {
+        throw new Error("Failed to fetch stores")
+      }
+      const storeDetails: Store[] = await storeRes.json()
 
       // Get user's ratings
       const { data: userRatings, error: userRatingsError } = await supabase
