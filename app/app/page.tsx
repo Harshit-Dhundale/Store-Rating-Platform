@@ -85,17 +85,21 @@ export default function UserStoresPage() {
 
     setSubmitting(true)
     try {
-      const { error } = await supabase.from("ratings").upsert({
-        user_id: user.id,
-        store_id: selectedStore.id,
-        value: rating,
+      const session = await supabase.auth.getSession()
+      const token = session.data.session?.access_token
+      const res = await fetch('/api/ratings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ storeId: selectedStore.id, value: rating }),
       })
-
-      if (error) throw error
+      if (!res.ok) throw new Error('Request failed')
 
       toast({
-        title: "Success",
-        description: "Rating submitted successfully",
+        title: 'Success',
+        description: 'Rating submitted successfully',
       })
 
       setSelectedStore(null)
@@ -212,9 +216,10 @@ export default function UserStoresPage() {
       </Card>
 
       <Dialog open={!!selectedStore} onOpenChange={() => setSelectedStore(null)}>
-        <DialogContent>
+        <DialogContent aria-describedby="rate-desc">
           <DialogHeader>
             <DialogTitle>Rate {selectedStore?.name}</DialogTitle>
+            <DialogDescription id="rate-desc">Select a rating from 1 to 5.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
