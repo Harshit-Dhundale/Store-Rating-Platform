@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useToast } from "@/hooks/use-toast"
 import { signInSchema } from "@/lib/validations"
-import { signIn } from "@/lib/auth"
+import { clientSignIn } from "@/lib/auth"
 import { useAuth } from "@/components/auth-provider"
 import Link from "next/link"
 import { useEffect } from "react"
@@ -22,7 +22,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
-  const { user, refreshUser } = useAuth()
+  const { user } = useAuth()
 
   const form = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
@@ -52,15 +52,13 @@ export default function LoginPage() {
   const onSubmit = async (data: SignInFormData) => {
     setLoading(true)
     try {
-      const userData = await signIn(data.email, data.password)
+      const { user: signed } = await clientSignIn(data.email, data.password)
+      const userData = { role: (signed.user_metadata as any)?.role || 'USER' }
 
       toast({
         title: "Success",
         description: "Logged in successfully",
       })
-
-      // Refresh user context
-      await refreshUser()
 
       // Force redirect after a short delay
       setTimeout(() => {
