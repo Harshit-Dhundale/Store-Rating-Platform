@@ -5,6 +5,7 @@ import type React from "react"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
+import { signOut } from "@/lib/auth"
 import { LayoutDashboard, Store, Users, LogOut, Settings } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -22,7 +23,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const pathname = usePathname()
 
   return (

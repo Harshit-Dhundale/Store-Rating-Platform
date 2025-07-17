@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useToast } from "@/hooks/use-toast"
 import { signUpSchema } from "@/lib/validations"
-import { signUp } from "@/lib/auth"
+import { clientSignUp } from "@/lib/auth"
 import Link from "next/link"
 
 type SignUpFormData = z.infer<typeof signUpSchema>
@@ -35,7 +35,7 @@ export default function SignUpPage() {
   const onSubmit = async (data: SignUpFormData) => {
     setLoading(true)
     try {
-      await signUp(data.email, data.password, {
+      await clientSignUp(data.email, data.password, {
         name: data.name,
         address: data.address,
       })

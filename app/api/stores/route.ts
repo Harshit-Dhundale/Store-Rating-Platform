@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/server/supabase-admin'
 
 export async function GET() {
-  const supabase = createServerClient()
-  const { data, error } = await supabase.from('stores').select('*')
+  const { data, error } = await supabaseAdmin.from('stores').select('*')
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

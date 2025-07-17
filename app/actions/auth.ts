@@ -1,6 +1,6 @@
 "use server"
 
-import { createServerClient } from "@/lib/supabase"
+import { supabaseAdmin } from "@/lib/server/supabase-admin"
 import bcrypt from "bcryptjs"
 import type { UserRole } from "@/lib/types"
 
@@ -19,7 +19,7 @@ export async function createUserProfile(
     const passwordHash = await bcrypt.hash(password, 12)
 
     // Use service role client to insert into users table
-    const serverClient = createServerClient()
+    const serverClient = supabaseAdmin
 
     const { data, error } = await serverClient
       .from("users")
@@ -56,7 +56,7 @@ export async function createUserByAdmin(
 ) {
   try {
     // Use service role client to create auth user and profile
-    const serverClient = createServerClient()
+    const serverClient = supabaseAdmin
 
     // Create user in Supabase Auth using admin API
     const { data: authUser, error: authError } = await serverClient.auth.admin.createUser({
@@ -101,7 +101,7 @@ export async function createUserByAdmin(
 export async function signInUser(email: string, password: string) {
   try {
     // Use service role client for authentication
-    const serverClient = createServerClient()
+    const serverClient = supabaseAdmin
 
     // Get user from our custom table first
     const { data: user, error: userError } = await serverClient.from("users").select("*").eq("email", email).single()
