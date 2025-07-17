@@ -1,3 +1,4 @@
+
 'use client'
 import { supabaseBrowser } from './supabase-browser'
 import type { UserRole } from './types'
@@ -22,6 +23,7 @@ export async function clientSignUp(
   return res.json()
 }
 
+
 export async function getCurrentUserProfile() {
   const {
     data: { session },
@@ -34,6 +36,7 @@ export async function getCurrentUserProfile() {
     .single()
   if (error) return null
   return data
+
 }
 
 export async function signOut() {
